@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hangman Game</title>
+    <style>
+        body {
+            background-color: #dcdcdc;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        #game-container {
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 30px;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+        }
+        
+        #word-display {
+            font-size: 24px;
+            text-align:center;
+            margin-bottom: 10px;
+        }
+        
+        #attempts-left {
+            text-align:center;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        #guess-input {
+            text-align:center;
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+        
+        #guess-button, #new-game-button {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 10px;
+            background-color: #007bff;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        #guess-button:hover, #new-game-button:hover {
+            background-color: #0056b3;
+        }
+        
+        #message {
+            text-align:center;
+            font-size: 16px;
+            color: #ff0000;
+        }
+        
+    </style>
+  </head>
+  <body>
+    <h1>Hangman Game</h1>
+    <div id="game-container">
+      <p id="word-display"></p>
+      <p id="attempts-left"></p>
+      <input type="text" id="guess-input" placeholder="Enter your guess" />
+      <button id="guess-button">Guess</button>
+      <button id="new-game-button">New Game</button>
+      <p id="message"></p>
+    </div>
+
+    <script>
+      const wordDisplay = document.getElementById("word-display");
+      const attemptsLeft = document.getElementById("attempts-left");
+      const guessInput = document.getElementById("guess-input");
+      const guessButton = document.getElementById("guess-button");
+      const newGameButton = document.getElementById("new-game-button");
+      const message = document.getElementById("message");
+
+      let gameStarted = false;
+
+      // Function to update game status
+      function updateGameStatus() {
+        fetch("/hangman/status")
+          .then((response) => response.json())
+          .then((data) => {
+            wordDisplay.textContent = data.found_till_now.join(" "); // Display current progress
+            attemptsLeft.textContent = `Attempts left: ${data.attempts_left}`;
+            if (data.game_over) {
+              message.textContent = "Game over!";
+            } else {
+              if (!gameStarted) {
+                message.textContent = "Start";
+              }
+            }
+          });
+      }
+
+      // Function to start a new game
+      newGameButton.addEventListener("click", () => {
+        fetch("/hangman/new", { method: "POST" })
+          .then((response) => response.json())
+          .then((data) => {
+            gameStarted = true;
+            message.textContent="";
+            updateGameStatus();
+          });
+      });
+
+      // Function to handle user guesses
+      guessButton.addEventListener("click", () => {
+        if (!gameStarted) {
+          message.textContent = "Please start a new game first";
+          return;
+        }
+        const guess = guessInput.value;
+        document.getElementById("guess-input").value = "";
+        fetch("/hangman/guess", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ guess: guess }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            updateGameStatus();
+            message.textContent = data.Message;
+          });
+      });
+
+      // Start a new game when the page loads
+      window.onload = () => {
+        newGameButton.click();
+      };
+    </script>
+  </body>
+</html>
